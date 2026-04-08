@@ -3,3 +3,4 @@
 src/.DS_Store
 Documentation/.DS_Store
 data/.DS_Store
+/tests/__pycache__

@@ -232,7 +232,7 @@ class SampleDownloader:
                 'content_length': int(response.headers.get('Content-Length', 0)),
                 'available': True
             }
-        except:
+        except Exception:
             return {'available': False}
     
     def batch_download(self, word_list: List[str], language: str = 'en',
