@@ -368,3 +368,7 @@ For issues, questions, or suggestions, please check the documentation or create 
 ---
 
 **Happy learning! 🌍🗣️**
+
+
+---
+*Built with AI assistance from [Claude (Anthropic)](https://claude.com/).*
