@@ -48,7 +48,11 @@ class AudioProcessor:
         )
         sd.wait()
         self.is_recording = False
-        self.recording = recording.flatten()
+        recording = recording.flatten()
+        if np.issubdtype(recording.dtype, np.integer):
+            # librosa (trim_silence, MFCC, ...) needs floating-point audio in [-1, 1]
+            recording = recording.astype(np.float32) / float(np.iinfo(recording.dtype).max + 1)
+        self.recording = recording
         return self.recording
     
     def start_recording(self):
