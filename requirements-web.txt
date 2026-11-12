@@ -1,0 +1,12 @@
+# Web interface (run_web.py, scripts/build_static.py, tests/test_web.py). The desktop app uses requirements.txt.
+fastapi==0.162.2
+httpx==0.28.1
+pytest==9.2.0
+uvicorn==0.54.0
+python-multipart==0.0.33
+numpy==2.5.4
+scipy==1.18.1
+librosa==1.0.0
+numba==0.68.1
+fastdtw==0.3.4
+soundfile==0.14.0

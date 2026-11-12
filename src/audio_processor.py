@@ -4,7 +4,10 @@ Handles recording, playback, waveform analysis, and spectrogram generation.
 """
 import numpy as np
 import soundfile as sf
-import sounddevice as sd
+try:
+    import sounddevice as sd
+except (ImportError, OSError):  # no PortAudio (e.g. a headless server): file analysis still works
+    sd = None
 from scipy import signal
 from scipy.fft import fft, fftfreq
 import librosa

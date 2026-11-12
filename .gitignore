@@ -4,3 +4,9 @@ src/.DS_Store
 Documentation/.DS_Store
 data/.DS_Store
 /tests/__pycache__
+
+# web
+/site/
+/data/
+/docs/img/*.tmp
+__pycache__/

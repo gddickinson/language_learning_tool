@@ -56,9 +56,9 @@ Required packages:
 
 3. **Run the application:**
 ```bash
-cd src
-python main_gui.py
+python run.py
 ```
+(or `cd src && python main_gui.py`)
 
 ## 📖 Usage Guide
 
@@ -94,6 +94,38 @@ python main_gui.py
 - Brighter colors = stronger frequency components
 - Speech typically ranges 100-8000 Hz
 - Helps visualize pitch, intonation, and phoneme articulation
+
+## 🌐 Web version
+
+**Live site: https://gddickinson.github.io/language_learning_tool/** (published from `main` by `.github/workflows/pages.yml`).
+
+The static site is the tool itself: record with the microphone (only after you press Record) or load an audio file,
+and the waveform, spectrogram, MFCC / chroma / spectral features and the DTW comparison are computed in your browser.
+Audio never leaves the page. The analysis is a JavaScript port of this repo's Python pipeline (librosa MFCC, chroma
+with tuning estimate, spectral centroid / roll-off / ZCR, piptrack, fastdtw, the DTW warping and the Practice tab's
+report), checked against the Python results on synthetic signals (`web/static/engine.test.mjs`, and the **Verify**
+page in the browser; largest difference about 1e-11).
+
+No reference recordings ship with the repository: use a recording you have the rights to, record a teacher or native
+speaker with their permission, or record yourself. The synthetic demo clips are generated tones, not speech.
+
+| Practice | Analyse | Verify |
+|---|---|---|
+| ![Practice](docs/img/practice.png) | ![Analyse](docs/img/analyse.png) | ![Verify](docs/img/verify.png) |
+
+### Run the web app locally
+
+```bash
+pip install -r requirements-web.txt
+python run_web.py            # http://127.0.0.1:8163
+```
+
+The local app adds **Check with Python** on the Practice page (the same two clips through `src/dtw_comparator.py`)
+and the **Library** page (your desktop sample database, read-only). Tests: `python -m pytest -q tests` and
+`node web/static/engine.test.mjs`; `python scripts/build_static.py` writes the static site to `site/`.
+
+Not in the web version: the Live Comparison tab, pYIN pitch, saving to the database, statistics and the Forvo
+downloader (needs your API key; stays in the desktop app).
 
 ## 🔧 Module Documentation
 
@@ -327,7 +359,7 @@ This tool is based on research in:
 
 ## 📝 License
 
-This project is provided as-is for educational purposes.
+MIT licence (see `LICENSE`).
 
 ## 🤝 Contributing
 

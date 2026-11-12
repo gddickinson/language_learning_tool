@@ -1,0 +1,46 @@
+/* Pronunciation Lab: accent palette and page styles (theme in style.css). */
+:root { --accent:#ffb547; --accent2:#3fd8ff; --accent3:#b48cff; --glow:rgba(255,181,71,.14);
+  --ref:#3fd8ff; --you:#ff5c8a; --diff:#ffb547; }
+button, .btn, .seg button.on { color:#1a0f00; }
+.mark { border-color:var(--accent); box-shadow:0 0 12px var(--accent), inset 0 0 0 4px var(--bg), inset 0 0 0 9px var(--accent2); }
+.two > *, .side > *, .row > * { min-width:0; }
+.hero .btn { margin-right:10px; }
+.hide { display:none !important; }
+
+/* clip panels */
+.clip h2 { margin-top:0; font-size:19px; }
+.clip .src { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.clip .src button, .clip .src label.btn { margin:0; }
+.clip .src select { width:auto; }
+.clip .meta { font:12px var(--mono); color:var(--mute); margin:8px 0 4px; min-height:1.4em; }
+.clip.ref { border-top:2px solid var(--ref); } .clip.you { border-top:2px solid var(--you); }
+label.btn { display:inline-block; color:#1a0f00; font:600 13px var(--mono); }
+label.btn input { display:none; }
+.rec { background:var(--you); }
+.rec.on { animation:pulse 1s infinite; }
+@keyframes pulse { 50% { filter:brightness(1.4); box-shadow:0 0 18px var(--you); } }
+
+/* plots */
+.plot { width:100%; height:auto; display:block; background:#03050b; border:1px solid var(--line); border-radius:4px; margin:6px 0; }
+.legend { display:flex; flex-wrap:wrap; gap:4px 16px; font:12px var(--mono); color:var(--mute); }
+.legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:6px; }
+.charts { display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:14px; }
+.charts .panel { margin:0; }
+.charts h3 { margin-top:0; }
+
+/* results */
+.score { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
+.score b { font:600 46px var(--mono); }
+.score .green { color:#4cff8f; } .score .lightgreen { color:#a6ff7a; } .score .orange { color:#ffb547; } .score .red { color:#ff5c7a; }
+.kv { display:grid; grid-template-columns:auto 1fr; gap:2px 14px; font-size:14px; }
+.kv dt { color:var(--mute); } .kv dd { margin:0; font:13px var(--mono); }
+td.n, th.n { text-align:right; font-family:var(--mono); }
+.pass { color:var(--good); } .fail { color:var(--bad); }
+.shots img { width:100%; border:1px solid var(--line); border-radius:6px; }
+
+@media (max-width:760px) {
+  .charts { grid-template-columns:1fr; }
+  .kv { grid-template-columns:1fr; } .kv dd { margin-bottom:6px; }
+  .score b { font-size:36px; }
+}
+.clip .src label:not(.btn) { display:inline; margin:0; }
