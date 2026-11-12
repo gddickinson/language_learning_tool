@@ -6,14 +6,18 @@ Extracts duplicated warping/smoothness logic into one place.
 
 import numpy as np
 
+# Hop length (samples) of the feature frames that DTWComparator.compare_dtw aligns (librosa's default, 512).
+FEATURE_HOP_LENGTH = 512
 
-def apply_dtw_warping(user_audio, ref_audio, dtw_path):
+
+def apply_dtw_warping(user_audio, ref_audio, dtw_path, hop_length=FEATURE_HOP_LENGTH):
     """Apply DTW warping to align user audio to reference timeline.
 
     Args:
         user_audio: User's normalised audio signal.
         ref_audio:  Reference audio signal.
-        dtw_path:   DTW alignment path (list of (user_idx, ref_idx) tuples).
+        dtw_path:   DTW alignment path (list of (user_frame, ref_frame) tuples) over feature frames.
+        hop_length: Samples per feature frame; frame k is centred on sample k * hop_length.
 
     Returns:
         Time-warped user audio aligned to reference length.
@@ -24,8 +28,9 @@ def apply_dtw_warping(user_audio, ref_audio, dtw_path):
     user_len = len(user_audio)
 
     dtw_path = np.array(dtw_path)
-    user_indices = dtw_path[:, 0]
-    ref_indices = dtw_path[:, 1]
+    # Feature-frame indices -> sample indices (frame k is centred on sample k * hop_length)
+    user_indices = np.minimum(dtw_path[:, 0] * hop_length, user_len - 1)
+    ref_indices = np.minimum(dtw_path[:, 1] * hop_length, ref_len - 1)
 
     # Remove duplicate reference indices, keep first occurrence
     unique_ref_indices = []

@@ -33,3 +33,24 @@ def test_record_returns_float_audio_that_trim_silence_accepts():
     np.testing.assert_allclose(audio, sig, atol=1 / 32767)
     trimmed = proc.trim_silence(audio)
     assert len(trimmed) < len(audio)
+
+
+def _speechlike(seconds=1.0, seed=0):
+    """Chirp with a syllable-like envelope: frames differ from each other, so the DTW path is well defined."""
+    t = np.arange(int(seconds * SR)) / SR
+    env = 0.2 + np.sin(np.pi * 3 * t / seconds) ** 2
+    return env * np.sin(2 * np.pi * (180 * t + 200 * t ** 2)) + 0.01 * np.random.default_rng(seed).normal(size=len(t))
+
+
+def test_dtw_warping_maps_feature_frames_to_samples():
+    """apply_dtw_warping() treated the MFCC frame indices of the DTW path as sample indices, so the "aligned" user
+    waveform was the first ~N_frames samples stretched over the whole reference (correlation with an identical
+    reference was near zero). Frame indices are now scaled by the feature hop length (512 samples)."""
+    from alignment_utils import apply_dtw_warping
+    from dtw_comparator import DTWComparator
+    ref = _speechlike()
+    ref = ref / np.max(np.abs(ref))
+    _, path = DTWComparator().compare_dtw(ref, ref, 'mfcc')
+    warped = apply_dtw_warping(ref, ref, path)
+    assert len(warped) == len(ref)
+    assert np.corrcoef(ref, warped)[0, 1] > 0.99
