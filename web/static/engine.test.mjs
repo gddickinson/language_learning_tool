@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { normalize, spectrogramDb, stft, trimSilence } from './dsp.js';
 import { estimateTuning } from './features.js';
-import { analyseClip, compareClips, similarityFeedback } from './dtw.js';
+import { SCORE, analyseClip, compareClips, similarityFeedback } from './dtw.js';
 import { alignedComparison, practiceReport } from './align.js';
 import { PRESETS, synth } from './synth.js';
 import { audioFeatures } from './summary.js';
@@ -21,6 +21,8 @@ const closeMat = (A, B, what, rtol, atol) => {
   A.forEach((row, t) => { assert.equal(row.length, B[t].length, `${what}[${t}] length`); row.forEach((v, k) => close(v, B[t][k], `${what}[${t}][${k}]`, rtol, atol)); });
 };
 
+assert.deepEqual(SCORE, { mfccTopDb: fx.score.mfcc_top_db, mfccScaleDb: fx.score.mfcc_scale_db, d0: fx.score.d0, weights: fx.score.weights },
+  'dtw.js SCORE constants equal src/config.py');
 const sig = Object.fromEntries(Object.entries(PRESETS).map(([k, p]) => [k, synth(p)]));
 const clips = {};
 for (const [name, py] of Object.entries(fx.clips)) {
@@ -31,6 +33,7 @@ for (const [name, py] of Object.entries(fx.clips)) {
   closeMat(c.feats.mfcc, py.mfcc, `${name} mfcc`, 1e-7, 1e-7);
   closeMat(c.feats.chroma, py.chroma, `${name} chroma`, 1e-7, 1e-9);
   closeMat(c.feats.spectral, py.spectral, `${name} spectral`, 1e-7, 1e-9);
+  for (const ft of ['mfcc', 'chroma', 'spectral']) closeMat(c.cmpFeats[ft], py.comparison[ft], `${name} comparison ${ft}`, 1e-7, 1e-9);
   close(c.feats.tuning, py.tuning, `${name} tuning`, 0, 1e-12);
   close(estimateTuning(stft(y).pow), py.tuning, `${name} estimateTuning`, 0, 1e-12);
   close(c.meanPitch, py.mean_pitch, `${name} mean pitch`, 1e-9);
@@ -55,8 +58,10 @@ for (const [user, py] of Object.entries(fx.pairs)) {
   for (const ft of ['mfcc', 'chroma', 'spectral']) {
     assert.deepEqual(cmp.paths[ft], py.paths[ft], `${user} ${ft} DTW path`); checks++;
     close(cmp.results[`dtw_${ft}`], py.results[`dtw_${ft}`], `${user} dtw_${ft}`, 1e-7, 1e-9);
+    close(cmp.results[`${ft}_similarity`], py.results[`${ft}_similarity`], `${user} ${ft}_similarity`, 1e-7, 1e-9);
   }
-  close(cmp.results.similarity_score, py.results.similarity_score, `${user} score`, 1e-9, 1e-9);
+  close(cmp.results.similarity_score, py.results.similarity_score, `${user} score`, 1e-7, 1e-9);
+  assert.deepEqual(Object.keys(cmp.results).sort(), Object.keys(py.results).sort(), `${user} result keys`);
   close(cmp.results.duration_ratio, py.results.duration_ratio, `${user} duration ratio`, 1e-12);
   assert.equal(cmp.results.is_similar, py.results.is_similar);
   for (const [k, v] of Object.entries(py.analysis)) {

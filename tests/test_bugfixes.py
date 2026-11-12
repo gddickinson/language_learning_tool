@@ -66,3 +66,28 @@ def test_practice_report_recommends_pitch_when_pitch_differs():
     assert 'Focus on matching pitch contour' in text
     analysis['pitch_feedback'] = 'Good pitch/tone'
     assert 'Focus on matching pitch contour' not in practice_report(40.0, 0.8, 'Good', 1.0, {}, analysis, 'x')
+
+
+def test_similarity_score_is_meaningful():
+    """The score was 100 * (1 - mean(raw DTW distances) / 10): the spectral distance is in Hz, so every pair of
+    different clips scored 0. Features are now scaled, each distance mapped with exp(-d / d0) and combined."""
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
+    import calibrate_score
+    from dtw_comparator import DTWComparator
+    comp = DTWComparator()
+    ref, same, unrelated = calibrate_score.signals()
+    assert comp.compare_multiple_features(ref, ref)['similarity_score'] == 100.0
+    for name, y in same.items():
+        assert comp.compare_multiple_features(y, ref)['similarity_score'] >= 70, name
+    for name, y in unrelated.items():
+        assert comp.compare_multiple_features(y, ref)['similarity_score'] <= 30, name
+    quieter = comp.compare_multiple_features(0.3 * ref, ref)
+    assert quieter['similarity_score'] > 99.9  # gain does not matter (volume has its own feedback)
+
+
+def test_score_scales_match_calibration():
+    """config.SCORE_D0 is what scripts/calibrate_score.py derives (keep them in step)."""
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
+    import calibrate_score
+    import config
+    assert calibrate_score.calibrate()[0] == config.SCORE_D0

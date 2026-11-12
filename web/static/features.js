@@ -31,9 +31,9 @@ export function melFilter(sr = SR, n = N_FFT, nMels = 128) {
   });
 }
 
-// librosa.feature.mfcc(y, sr, n_mfcc=13): power_to_db(melspectrogram) (ref 1, amin 1e-10, top_db 80 over the whole
-// matrix), then scipy.fft.dct(type 2, norm='ortho') over the mel axis, first n_mfcc coefficients.
-export function mfcc(pow, sr = SR, nMfcc = 13) {
+// librosa.feature.mfcc(y, sr, n_mfcc=13): power_to_db(melspectrogram) (ref 1, amin 1e-10, floored topDb below the
+// peak of the whole matrix), then scipy.fft.dct(type 2, norm='ortho') over the mel axis, first n_mfcc coefficients.
+export function mfcc(pow, sr = SR, nMfcc = 13, topDb = 80.0) {
   const W = melFilter(sr, 2 * (pow[0].length - 1)), M = W.length;
   const logmel = pow.map(S => {
     const out = new Float64Array(M);
@@ -41,7 +41,7 @@ export function mfcc(pow, sr = SR, nMfcc = 13) {
     return out;
   });
   let top = -Infinity; for (const r of logmel) for (const v of r) top = Math.max(top, v);
-  const floor = top - 80.0;
+  const floor = top - topDb;
   const cosT = memo(`dct${M}/${nMfcc}`, () => Array.from({ length: nMfcc }, (_, k) =>
     Float64Array.from({ length: M }, (_, n) => Math.cos(Math.PI * k * (2 * n + 1) / (2 * M)))));
   return logmel.map(r => {
@@ -189,11 +189,12 @@ export function zeroCrossingRate(y, n = N_FFT, hop = HOP) {
 }
 
 // DTWComparator.extract_features for 'mfcc', 'chroma' and 'spectral' from one STFT (time x features).
-export function allFeatures(y, spec, sr = SR) {
+// mfccTopDb: 80 (librosa default, extract_features) or config.MFCC_TOP_DB (comparison_features).
+export function allFeatures(y, spec, sr = SR, mfccTopDb = 80.0) {
   const { centroid, rolloff } = centroidRolloff(spec.mag, sr), zcr = zeroCrossingRate(y);
   const { chroma, tuning } = chromaStft(spec.pow, sr);
   return {
-    mfcc: mfcc(spec.pow, sr), chroma, tuning,
+    mfcc: mfcc(spec.pow, sr, 13, mfccTopDb), chroma, tuning,
     spectral: Array.from(centroid, (c, t) => Float64Array.of(c, rolloff[t], zcr[t])),
   };
 }

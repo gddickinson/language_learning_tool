@@ -1,7 +1,7 @@
 // Practice results: run the comparison in the browser and draw it; optionally re-run it in Python (local app).
 import { api, esc } from './core.js';
 import { SR, normalize, spectrogramDb } from './dsp.js';
-import { analyseClip, compareClips, similarityFeedback } from './dtw.js';
+import { SCORE, analyseClip, compareClips, similarityFeedback } from './dtw.js';
 import { alignedComparison, practiceReport, scoreColour } from './align.js';
 import { wavBlob } from './audio_io.js';
 import { clips } from './state.js';
@@ -11,7 +11,7 @@ const analysed = new WeakMap();
 const analyse = c => { if (!analysed.has(c)) analysed.set(c, analyseClip(c.y)); return analysed.get(c); };
 const f = (v, d = 3) => (v == null || Number.isNaN(v) ? 'n/a' : (+v).toFixed(d));
 const FEAT = {
-  mfcc: ['MFCC', '13 mel-frequency cepstral coefficients: the shape of the vocal tract (which sound)'],
+  mfcc: ['MFCC', '13 mel-frequency cepstral coefficients (log-mel floored 40 dB below the peak): which sound'],
   chroma: ['Chroma', '12 pitch classes of the spectrum, with librosa\'s tuning estimate (tonal content)'],
   spectral: ['Spectral', 'centroid (Hz), 85 % roll-off (Hz) and zero-crossing rate per frame'],
 };
@@ -38,13 +38,13 @@ function render(host, r) {
   host.innerHTML = `
   <section class="panel"><h2 style="margin-top:0">Result</h2>
     <div class="score"><b class="${scoreColour(score)}">${score.toFixed(1)}</b><span>/ 100 · ${esc(similarityFeedback(score))}</span></div>
-    <div class="callout small">How the score is made (as in the desktop app): the mean of the three per-frame DTW
-      distances below, mapped with <code>100 × (1 − d / 10)</code> and clipped to 0–100. The distances are not on a
-      common scale (spectral ones are in Hz), so in practice any two different clips score 0 and only identical audio
-      scores 100. The per-feature distances are the useful numbers: lower means closer. Calibrating the score is an open
-      question for the author.</div>
-    <div class="scroll"><table><thead><tr><th>Features</th><th class="n">DTW distance / frame</th><th class="n">path length</th><th>What it measures</th></tr></thead>
-    <tbody>${Object.entries(FEAT).map(([k, [n, d]]) => `<tr><td>${n}</td><td class="n">${f(cmp.results['dtw_' + k])}</td>
+    <p class="small mute">How the score is made: both clips are peak-normalised and each feature set is put on a common
+      scale; DTW gives a distance per frame for each set, which becomes a 0–100 match with
+      <code>100 × exp(−d / d0)</code>; the score is the weighted mean (MFCC ${SCORE.weights.mfcc}, chroma
+      ${SCORE.weights.chroma}, spectral ${SCORE.weights.spectral}). d0 is set so a time-stretched or ±6 % pitch-shifted
+      copy of the same synthetic voice still scores at least 70 on every feature (see About).</p>
+    <div class="scroll"><table><thead><tr><th>Features</th><th class="n">DTW distance / frame</th><th class="n">match (0–100)</th><th class="n">path length</th><th>What it measures</th></tr></thead>
+    <tbody>${Object.entries(FEAT).map(([k, [n, d]]) => `<tr><td>${n}</td><td class="n">${f(cmp.results['dtw_' + k])}</td><td class="n">${f(cmp.results[k + '_similarity'], 1)}</td>
       <td class="n">${cmp.paths[k].length}</td><td class="small mute">${d}</td></tr>`).join('')}</tbody></table></div>
     <h3>Pronunciation analysis</h3>
     <dl class="kv">

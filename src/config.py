@@ -20,6 +20,19 @@ FREQ_MAX = 8000  # Hz - maximum frequency for speech
 DTW_DISTANCE_THRESHOLD = 0.3  # Similarity threshold (0-1, lower is more similar)
 DTW_RADIUS = 1  # Constraint radius for FastDTW
 
+# Similarity score (DTWComparator.compare_multiple_features). Before DTW both clips are peak-normalised and each
+# feature set is put on a comparable scale: MFCCs from a log-mel spectrogram floored MFCC_TOP_DB below its peak,
+# in units of 10 dB; spectral centroid and roll-off as fractions of the Nyquist frequency; chroma and zero-crossing
+# rate as they are (0-1). Frame distances are Euclidean / sqrt(number of coefficients) (RMS per coefficient) and each
+# DTW distance is divided by the path length. Each distance d becomes a 0-100 score 100 * exp(-d / d0); the overall
+# score is the weighted mean. d0 comes from scripts/calibrate_score.py: the largest distance between a synthetic voice
+# and its time-stretched (0.8x, 1.25x), pitch-shifted (+-6 %) and re-noised copies, divided by ln(100 / 70), so
+# each such copy scores at least 70 on every feature.
+MFCC_TOP_DB = 40.0
+MFCC_SCALE_DB = 10.0
+SCORE_D0 = {'mfcc': 0.71, 'chroma': 0.15, 'spectral': 0.023}
+SCORE_WEIGHTS = {'mfcc': 0.5, 'chroma': 0.3, 'spectral': 0.2}
+
 # Database settings
 DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'samples.db')
 

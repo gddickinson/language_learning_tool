@@ -278,6 +278,11 @@ The tool uses DTW on three feature types:
 
 ### Similarity Scores
 
+Each feature set (MFCC, chroma, spectral) is put on a common scale, aligned with DTW, and its per-frame distance d
+turned into a 0-100 match `100 * exp(-d / d0)`; the score is the weighted mean (0.5 / 0.3 / 0.2). The d0 values in
+`src/config.py` come from `scripts/calibrate_score.py`: time-stretched or slightly pitch-shifted copies of a synthetic
+voice score 74-96, unrelated signals 3-25 (synthetic calibration, not a learner corpus).
+
 - **90-100**: Excellent - Very accurate pronunciation
 - **75-89**: Good - Quite close to native pronunciation
 - **60-74**: Fair - Recognizable but needs improvement

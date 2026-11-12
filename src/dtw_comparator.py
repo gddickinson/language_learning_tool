@@ -67,6 +67,36 @@ class DTWComparator:
         # Transpose to (time x features) for DTW
         return features.T
     
+    def comparison_features(self, audio: np.ndarray,
+                            feature_type: str = 'mfcc') -> np.ndarray:
+        """
+        Features on a common scale for DTW (see the score notes in config.py).
+
+        The audio is peak-normalised (the score should not depend on recording
+        gain; volume is judged separately). MFCCs come from a log-mel
+        spectrogram floored config.MFCC_TOP_DB below its peak (so a quiet noise
+        floor does not dominate) in units of config.MFCC_SCALE_DB; spectral
+        centroid and roll-off are divided by the Nyquist frequency. Every frame
+        is divided by sqrt(number of coefficients), so the Euclidean frame
+        distance is the RMS difference per coefficient.
+
+        Returns:
+            Feature matrix (time x features)
+        """
+        peak = np.max(np.abs(audio)) if len(audio) else 0.0
+        if peak > 0:
+            audio = audio / peak
+        if feature_type == 'mfcc':
+            mel = librosa.feature.melspectrogram(y=audio, sr=self.sample_rate)
+            log_mel = librosa.power_to_db(mel, top_db=config.MFCC_TOP_DB)
+            features = (librosa.feature.mfcc(S=log_mel, n_mfcc=13) / config.MFCC_SCALE_DB).T
+        else:
+            features = self.extract_features(audio, feature_type)
+            if feature_type == 'spectral':
+                features = features.copy()
+                features[:, :2] /= self.sample_rate / 2
+        return features / np.sqrt(features.shape[1])
+
     def compare_dtw(self, audio1: np.ndarray, audio2: np.ndarray,
                    feature_type: str = 'mfcc',
                    radius: int = config.DTW_RADIUS) -> Tuple[float, np.ndarray]:
@@ -82,9 +112,9 @@ class DTWComparator:
         Returns:
             Tuple of (normalized_distance, alignment_path)
         """
-        # Extract features
-        features1 = self.extract_features(audio1, feature_type)
-        features2 = self.extract_features(audio2, feature_type)
+        # Extract features on a common scale
+        features1 = self.comparison_features(audio1, feature_type)
+        features2 = self.comparison_features(audio2, feature_type)
         
         # Compute DTW distance and path
         distance, path = fastdtw(features1, features2,
@@ -105,28 +135,26 @@ class DTWComparator:
             audio2: Second audio sample
             
         Returns:
-            Dictionary of comparison metrics
+            Dictionary of comparison metrics: dtw_<feature> distances,
+            <feature>_similarity scores (0-100), similarity_score (weighted
+            mean), duration_ratio, is_similar
         """
         results = {}
         
-        # DTW on different features
+        # DTW on each feature set, each distance mapped to a 0-100 score
+        # 100 * exp(-d / d0), combined with fixed weights (config.py)
+        overall = 0.0
         for feature_type in ['mfcc', 'chroma', 'spectral']:
             distance, _ = self.compare_dtw(audio1, audio2, feature_type)
             results[f'dtw_{feature_type}'] = distance
-        
-        # Overall similarity score (0-100, higher is better)
-        # Average the normalized distances and invert
-        avg_distance = np.mean([results[f'dtw_{ft}'] 
-                               for ft in ['mfcc', 'chroma', 'spectral']])
-        
-        # Convert to similarity score (assuming typical DTW distances)
-        # This is a heuristic mapping - adjust based on your data
-        similarity = max(0, min(100, (1 - avg_distance / 10) * 100))
-        results['similarity_score'] = similarity
+            score = 100.0 * float(np.exp(-distance / config.SCORE_D0[feature_type]))
+            results[f'{feature_type}_similarity'] = score
+            overall += config.SCORE_WEIGHTS[feature_type] * score
+        results['similarity_score'] = overall / sum(config.SCORE_WEIGHTS.values())
         
         # Add detailed metrics
         results['duration_ratio'] = len(audio1) / len(audio2)
-        results['is_similar'] = similarity > 70  # Threshold for "similar"
+        results['is_similar'] = results['similarity_score'] > 70  # Threshold for "similar"
         
         return results
     

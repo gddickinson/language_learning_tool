@@ -27,18 +27,26 @@ route('about', async () => {
     <li><b>Features.</b> Every ${s.hop_length} samples a ${s.nfft}-sample Hann window is Fourier transformed. From it come
       ${s.n_mfcc} MFCCs (128 Slaney mel bands, dB, orthonormal DCT), ${s.n_chroma} chroma values (with librosa's tuning
       estimate) and three spectral values (centroid, 85 % roll-off, zero-crossing rate).</li>
+    <li><b>Common scale.</b> For the comparison both clips are peak-normalised (loudness is judged separately) and
+      each feature set is scaled: MFCCs from a log-mel spectrogram floored ${s.score.mfcc_top_db} dB below its peak, in
+      units of ${s.score.mfcc_scale_db} dB; centroid and roll-off as fractions of the Nyquist frequency; chroma and
+      zero-crossing rate as they are. Each frame is divided by √(number of coefficients).</li>
     <li><b>DTW.</b> For each feature set, FastDTW (radius ${s.dtw_radius}, Euclidean frame distance) finds the cheapest
       monotonic alignment between your frames and the reference's; the total cost divided by the path length is the
-      distance.</li>
-    <li><b>Score and feedback.</b> score = 100 × (1 − mean distance / 10), clipped to 0–100, with the feedback bands
+      distance d.</li>
+    <li><b>Score and feedback.</b> Each distance becomes a match 100 × exp(−d / d0) with d0 = MFCC ${s.score.d0.mfcc},
+      chroma ${s.score.d0.chroma}, spectral ${s.score.d0.spectral}; the score is the weighted mean (weights
+      ${s.score.weights.mfcc} / ${s.score.weights.chroma} / ${s.score.weights.spectral}), with the feedback bands
       ${s.feedback_bands.map(b => `≥ ${b.min_score}`).join(', ')}. Speed compares durations (±20 %), pitch the mean
       piptrack pitch (±20 %), volume the RMS ratio (0.6 to 1.5).</li>
     <li><b>Display.</b> Your recording is warped onto the reference timeline along the MFCC path and drawn over it with
       the |difference| band, and both spectrograms (${s.nfft}-sample Tukey windows, ${s.noverlap} overlap, up to 8 kHz).</li>
   </ol>
-  <div class="callout">The score's scale was never calibrated: the three distances have different units (the spectral
-    one is in Hz), so nearly every pair of different recordings scores 0. The site shows the per-feature distances so the
-    comparison stays useful; how the score should be calibrated is a decision for the author.</div>
+  <div class="callout">How d0 was chosen (<code>scripts/calibrate_score.py</code>): for a synthetic voice, the largest
+    distance to its time-stretched (0.8×, 1.25×), pitch-shifted (±6 %) and re-noised copies, divided by ln(100/70), so
+    each copy scores at least 70 on every feature. With these values the copies score 74–96 overall and unrelated
+    signals (another voice, a different intonation, a chirp, noise) 3–25. They are calibrated on synthetic signals, not
+    on a corpus of learners' speech.</div>
 
   <h2>Python and JavaScript</h2>
   <p>Each step is a direct port of the Python code it names, and is tested against it on synthetic signals

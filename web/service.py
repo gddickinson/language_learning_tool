@@ -30,6 +30,8 @@ def settings():
         "dtw_radius": config.DTW_RADIUS, "max_recording_s": config.MAX_RECORDING_DURATION,
         "supported_formats": config.SUPPORTED_FORMATS, "n_mfcc": 13, "n_chroma": 12, "hop_length": 512,
         "feature_types": ["mfcc", "chroma", "spectral"],
+        "score": {"mfcc_top_db": config.MFCC_TOP_DB, "mfcc_scale_db": config.MFCC_SCALE_DB,
+                  "d0": config.SCORE_D0, "weights": config.SCORE_WEIGHTS},
         "feedback_bands": [{"min_score": s, "text": t} for s, t in bands],
     }
 

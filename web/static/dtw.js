@@ -1,9 +1,13 @@
 // DTW comparison, ported from src/dtw_comparator.py (DTWComparator) and the fastdtw 0.3.4 package it calls
 // (pure-Python algorithm, same tie-breaking). Distances between frames are Euclidean (scipy.spatial.distance).
-import { SR, stft, nFrames } from './dsp.js';
+import { SR, normalize, stft, nFrames } from './dsp.js';
 import { allFeatures, piptrack } from './features.js';
 
 export const DTW_RADIUS = 1;  // config.DTW_RADIUS
+// Similarity score settings: config.MFCC_TOP_DB, MFCC_SCALE_DB, SCORE_D0, SCORE_WEIGHTS (see config.py for the
+// rationale; scripts/calibrate_score.py derives SCORE_D0). engine.test.mjs checks these equal the Python values.
+export const SCORE = { mfccTopDb: 40.0, mfccScaleDb: 10.0, d0: { mfcc: 0.71, chroma: 0.15, spectral: 0.023 },
+  weights: { mfcc: 0.5, chroma: 0.3, spectral: 0.2 } };
 
 export function euclidean(a, b) {
   let s = 0; for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d * d; }
@@ -82,15 +86,28 @@ export function compareFeatures(f1, f2, radius = DTW_RADIUS) {
   return { distance: d / path.length, path };
 }
 
-// Everything DTWComparator computes for one clip (features from one STFT, plus piptrack for the pitch check).
+// DTWComparator.comparison_features: peak-normalised audio, MFCC floored SCORE.mfccTopDb below the peak in units of
+// SCORE.mfccScaleDb, centroid / roll-off as fractions of Nyquist, every frame divided by sqrt(number of coefficients).
+export function comparisonFeatures(y, sr = SR) {
+  const yn = normalize(y), f = allFeatures(yn, stft(yn), sr, SCORE.mfccTopDb);
+  const scale = (rows, fn) => rows.map(r => { const k = Math.sqrt(r.length); return Float64Array.from(r, (v, i) => fn(v, i) / k); });
+  return {
+    mfcc: scale(f.mfcc, v => v / SCORE.mfccScaleDb),
+    chroma: scale(f.chroma, v => v),
+    spectral: scale(f.spectral, (v, i) => (i < 2 ? v / (sr / 2) : v)),
+  };
+}
+
+// Everything DTWComparator computes for one clip (raw features from one STFT, the comparison features, and
+// piptrack for the pitch check).
 export function analyseClip(y, sr = SR) {
   const spec = stft(y);
-  const feats = allFeatures(y, spec, sr);
+  const feats = allFeatures(y, spec, sr), cmpFeats = comparisonFeatures(y, sr);
   const pitch = piptrack(spec.mag, sr), { pitches } = pitch;
   let s = 0, n = 0;
   for (const row of pitches) for (const v of row) if (v > 0) { s += v; n++; }
   let e = 0; for (const v of y) e += v * v;
-  return { y, length: y.length, frames: nFrames(y.length), feats, spec, pitch, meanPitch: n ? s / n : NaN, rms: Math.sqrt(e / y.length) };
+  return { y, length: y.length, frames: nFrames(y.length), feats, cmpFeats, spec, pitch, meanPitch: n ? s / n : NaN, rms: Math.sqrt(e / y.length) };
 }
 
 // DTWComparator.get_similarity_feedback
@@ -105,12 +122,15 @@ export function similarityFeedback(score) {
 // DTWComparator.compare_multiple_features(user, ref) + analyze_pronunciation_errors(user, ref) on analysed clips.
 export function compareClips(user, ref) {
   const r = {}, paths = {};
+  let overall = 0, wsum = 0;
   for (const ft of ['mfcc', 'chroma', 'spectral']) {
-    const { distance, path } = compareFeatures(user.feats[ft], ref.feats[ft]);
+    const { distance, path } = compareFeatures(user.cmpFeats[ft], ref.cmpFeats[ft]);
     r[`dtw_${ft}`] = distance; paths[ft] = path;
+    r[`${ft}_similarity`] = 100.0 * Math.exp(-distance / SCORE.d0[ft]);
+    overall += SCORE.weights[ft] * r[`${ft}_similarity`];
   }
-  const avg = (r.dtw_mfcc + r.dtw_chroma + r.dtw_spectral) / 3;
-  const score = Math.max(0, Math.min(100, (1 - avg / 10) * 100));
+  for (const ft of ['mfcc', 'chroma', 'spectral']) wsum += SCORE.weights[ft];
+  const score = overall / wsum;
   const results = { ...r, similarity_score: score, duration_ratio: user.length / ref.length, is_similar: score > 70 };
 
   const analysis = {};

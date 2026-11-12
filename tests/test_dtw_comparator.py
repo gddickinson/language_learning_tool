@@ -3,7 +3,6 @@ Unit tests for the DTWComparator module.
 """
 import unittest
 import numpy as np
-import pytest
 import sys
 import os
 
@@ -81,10 +80,6 @@ class TestDTWComparator(unittest.TestCase):
         # Similar signals should have smaller distance than different signals
         self.assertLess(distance1, distance2)
     
-    @pytest.mark.xfail(strict=True, reason=(
-        "Needs George's decision: compare_multiple_features maps the mean of the raw MFCC, chroma and spectral "
-        "(Hz-scale) DTW distances to a score with (1 - d/10) * 100, so any non-identical audio scores 0. "
-        "The calibration of the score is an open design question (see SESSION_LOG.md)."))
     def test_compare_dtw_different_speeds(self):
         """Test DTW handles different speaking speeds."""
         # DTW should handle speed differences
@@ -193,10 +188,6 @@ class TestDTWSimilarityScoring(unittest.TestCase):
         # Different frequency
         self.signal_different = np.sin(2 * np.pi * 660 * t)
     
-    @pytest.mark.xfail(strict=True, reason=(
-        "Needs George's decision: compare_multiple_features maps the mean of the raw MFCC, chroma and spectral "
-        "(Hz-scale) DTW distances to a score with (1 - d/10) * 100, so any non-identical audio scores 0. "
-        "The calibration of the score is an open design question (see SESSION_LOG.md)."))
     def test_high_similarity_for_nearly_identical(self):
         """Nearly identical signals should have high similarity."""
         results = self.comparator.compare_multiple_features(
@@ -206,10 +197,6 @@ class TestDTWSimilarityScoring(unittest.TestCase):
         # Should have high similarity score
         self.assertGreater(results['similarity_score'], 70)
     
-    @pytest.mark.xfail(strict=True, reason=(
-        "Needs George's decision: compare_multiple_features maps the mean of the raw MFCC, chroma and spectral "
-        "(Hz-scale) DTW distances to a score with (1 - d/10) * 100, so any non-identical audio scores 0. "
-        "The calibration of the score is an open design question (see SESSION_LOG.md)."))
     def test_low_similarity_for_different(self):
         """Different signals should have lower similarity."""
         results_same = self.comparator.compare_multiple_features(

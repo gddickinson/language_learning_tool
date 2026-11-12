@@ -15,7 +15,7 @@
 | `alignment_utils.py` | ~110 | Shared DTW warping helpers (path in feature frames, `FEATURE_HOP_LENGTH` = 512) | `apply_dtw_warping()`, `calculate_path_smoothness()`, `smooth_warped_audio()` |
 | `feedback_report.py` | ~70 | Qt-free Practice tab report text and score colour | `practice_report()`, `score_colour()` |
 | `audio_processor.py` | ~340 | Audio I/O, features, MFCC, pitch | `AudioProcessor` |
-| `dtw_comparator.py` | ~330 | DTW comparison engine | `DTWComparator` |
+| `dtw_comparator.py` | ~360 | DTW comparison engine; `comparison_features` scales features, score = weighted 100·exp(−d/d0) | `DTWComparator` |
 | `database_manager.py` | ~500 | SQLite CRUD for samples & recordings | `DatabaseManager` |
 | `downloader.py` | ~260 | Forvo API client | `SampleDownloader` |
 | `config.py` | ~45 | Constants, paths, settings | module-level constants |
@@ -40,7 +40,8 @@
 | `web/static/core.js`, `style.css` | Shared web kit (unchanged); `style_app.css` project colours |
 
 Scripts: `run_web.py` (port 8163), `scripts/build_static.py` (static site to `site/`), `scripts/screenshots.py`
-(smoke test / README images in `docs/img/`), `scripts/make_engine_fixture.py` (Python results for the JS tests).
+(smoke test / README images in `docs/img/`), `scripts/make_engine_fixture.py` (Python results for the JS tests), `scripts/calibrate_score.py` (derives
+`config.SCORE_D0` and prints scores for same-voice and unrelated signals).
 
 ## Entry Points
 
