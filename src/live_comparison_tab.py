@@ -385,7 +385,7 @@ class LiveComparisonTab(QWidget):
                 parts.append(f"\n  Speak slower to match reference rhythm")
             elif duration_ratio < 0.8:
                 parts.append(f"\n  Speak faster to match reference pace")
-            if "pitch" in analysis and "differs" in analysis.get("pitch_feedback", "").lower():
+            if "differs" in analysis.get("pitch_feedback", "").lower():
                 parts.append(f"\n  Focus on matching pitch contour")
             parts.append(f"\n  Compare the spectrograms to see frequency differences")
             parts.append(f"\n  Watch the orange shading for pronunciation issues")

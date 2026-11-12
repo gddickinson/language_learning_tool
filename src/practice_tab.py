@@ -17,6 +17,7 @@ from PyQt5.QtGui import QFont
 import config
 from waveform_canvas import WaveformCanvas
 from alignment_utils import apply_dtw_warping, calculate_path_smoothness
+from feedback_report import practice_report, score_colour
 
 
 class PracticeTab(QWidget):
@@ -290,56 +291,13 @@ class PracticeTab(QWidget):
     def display_comprehensive_feedback(self, score, correlation,
                                        alignment_quality, results, analysis):
         duration_ratio = len(self.user_audio) / len(self.reference_audio)
-
-        if score >= 85:
-            color = "green"
-        elif score >= 70:
-            color = "lightgreen"
-        elif score >= 50:
-            color = "orange"
-        else:
-            color = "red"
-
+        color = score_colour(score)
         self.score_label.setText(f"Similarity Score: {score:.1f}/100")
         self.score_label.setStyleSheet(f"color: {color}; font-weight: bold;")
-
-        parts = ["=== PRONUNCIATION ANALYSIS ===\n"]
-        parts.append(f"Overall: {self.dtw.get_similarity_feedback(score)}\n")
-        parts.append(f"\nDetailed Metrics:")
-        parts.append(f"\n  Similarity Score: {score:.1f}/100")
-        parts.append(f"\n  Alignment Quality: {alignment_quality}")
-        parts.append(f"\n  Waveform Correlation: {correlation:.2f}")
-        parts.append(f"\n  Duration Ratio: {duration_ratio:.2f}x reference")
-        if "mfcc_similarity" in results:
-            parts.append(f"\n  Phonetic Match: {results['mfcc_similarity']:.1f}%")
-        if "chroma_similarity" in results:
-            parts.append(f"\n  Tonal Match: {results['chroma_similarity']:.1f}%")
-        if "spectral_similarity" in results:
-            parts.append(f"\n  Spectral Match: {results['spectral_similarity']:.1f}%")
-
-        parts.append(f"\n\nSpecific Feedback:")
-        parts.append(f"\n  {analysis.get('speed_feedback', 'N/A')}")
-        parts.append(f"\n  {analysis.get('pitch_feedback', 'N/A')}")
-        parts.append(f"\n  {analysis.get('volume_feedback', 'N/A')}")
-
-        parts.append(f"\n\nRecommendations:")
-        if score < 85:
-            if alignment_quality in ("Poor", "Fallback"):
-                parts.append(f"\n  Poor alignment - check recording quality")
-            if duration_ratio > 1.2:
-                parts.append(f"\n  Speak slower to match reference rhythm")
-            elif duration_ratio < 0.8:
-                parts.append(f"\n  Speak faster to match reference pace")
-            if "pitch" in analysis and "differs" in analysis.get("pitch_feedback", "").lower():
-                parts.append(f"\n  Focus on matching pitch contour")
-            if correlation < 0.6:
-                parts.append(f"\n  Low correlation - pronunciation very different")
-            parts.append(f"\n  Compare the spectrograms for frequency differences")
-            parts.append(f"\n  Orange shading shows pronunciation differences")
-        else:
-            parts.append(f"\n  Excellent work! Keep practicing to maintain this level.")
-
-        self.feedback_text.setText("".join(parts))
+        self.feedback_text.setText(practice_report(
+            score, correlation, alignment_quality, duration_ratio, results, analysis,
+            self.dtw.get_similarity_feedback(score),
+        ))
 
     # ── save / help ──────────────────────────────────────────────────────
 

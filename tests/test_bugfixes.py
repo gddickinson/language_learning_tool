@@ -54,3 +54,15 @@ def test_dtw_warping_maps_feature_frames_to_samples():
     warped = apply_dtw_warping(ref, ref, path)
     assert len(warped) == len(ref)
     assert np.corrcoef(ref, warped)[0, 1] > 0.99
+
+
+def test_practice_report_recommends_pitch_when_pitch_differs():
+    """The Practice/Live tabs tested `"pitch" in analysis`, but the analysis dict only has "pitch_feedback", so
+    "Focus on matching pitch contour" was never shown."""
+    from feedback_report import practice_report
+    analysis = {'speed_feedback': 'Good speaking speed', 'pitch_feedback': 'Pitch/tone differs significantly',
+                'volume_feedback': 'Good volume'}
+    text = practice_report(40.0, 0.8, 'Good', 1.0, {}, analysis, 'Needs improvement.')
+    assert 'Focus on matching pitch contour' in text
+    analysis['pitch_feedback'] = 'Good pitch/tone'
+    assert 'Focus on matching pitch contour' not in practice_report(40.0, 0.8, 'Good', 1.0, {}, analysis, 'x')
