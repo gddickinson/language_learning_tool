@@ -118,8 +118,10 @@ class TestAudioProcessor(unittest.TestCase):
     def test_trim_silence(self):
         """Test silence trimming."""
         # Create audio with silence at beginning and end
-        silence = np.zeros(1000)
-        signal = self.test_audio_440[:1000]
+        # librosa trims whole 512-sample hops of 2048-sample frames, so the silences and the signal must be
+        # several frames long (with 1000 samples of each, nothing could be trimmed)
+        silence = np.zeros(11025)
+        signal = self.test_audio_440[:22050]
         audio_with_silence = np.concatenate([silence, signal, silence])
         
         trimmed = self.processor.trim_silence(audio_with_silence)
@@ -127,8 +129,8 @@ class TestAudioProcessor(unittest.TestCase):
         # Trimmed audio should be shorter
         self.assertLess(len(trimmed), len(audio_with_silence))
         
-        # Should be approximately same length as original signal
-        self.assertAlmostEqual(len(trimmed), len(signal), delta=500)
+        # Should be approximately same length as original signal (within one frame)
+        self.assertAlmostEqual(len(trimmed), len(signal), delta=2048)
     
     def test_get_audio_features(self):
         """Test comprehensive feature extraction."""

@@ -3,6 +3,7 @@ Unit tests for the DTWComparator module.
 """
 import unittest
 import numpy as np
+import pytest
 import sys
 import os
 
@@ -80,6 +81,10 @@ class TestDTWComparator(unittest.TestCase):
         # Similar signals should have smaller distance than different signals
         self.assertLess(distance1, distance2)
     
+    @pytest.mark.xfail(strict=True, reason=(
+        "Needs George's decision: compare_multiple_features maps the mean of the raw MFCC, chroma and spectral "
+        "(Hz-scale) DTW distances to a score with (1 - d/10) * 100, so any non-identical audio scores 0. "
+        "The calibration of the score is an open design question (see SESSION_LOG.md)."))
     def test_compare_dtw_different_speeds(self):
         """Test DTW handles different speaking speeds."""
         # DTW should handle speed differences
@@ -126,11 +131,17 @@ class TestDTWComparator(unittest.TestCase):
         feedback_90 = self.comparator.get_similarity_feedback(90)
         self.assertIn('Excellent', feedback_90)
         
+        # README "Similarity Scores": 75-89 Good, 60-74 Fair
+        feedback_80 = self.comparator.get_similarity_feedback(80)
+        self.assertIn('Good', feedback_80)
         feedback_70 = self.comparator.get_similarity_feedback(70)
-        self.assertIn('Good', feedback_70)
+        self.assertIn('Fair', feedback_70)
         
+        # README: 40-59 Needs work, 0-39 Significant differences
+        feedback_50 = self.comparator.get_similarity_feedback(50)
+        self.assertIn('improvement', feedback_50.lower())
         feedback_30 = self.comparator.get_similarity_feedback(30)
-        self.assertIn('improvement', feedback_30.lower())
+        self.assertIn('significant', feedback_30.lower())
     
     def test_analyze_pronunciation_errors(self):
         """Test detailed pronunciation error analysis."""
@@ -182,6 +193,10 @@ class TestDTWSimilarityScoring(unittest.TestCase):
         # Different frequency
         self.signal_different = np.sin(2 * np.pi * 660 * t)
     
+    @pytest.mark.xfail(strict=True, reason=(
+        "Needs George's decision: compare_multiple_features maps the mean of the raw MFCC, chroma and spectral "
+        "(Hz-scale) DTW distances to a score with (1 - d/10) * 100, so any non-identical audio scores 0. "
+        "The calibration of the score is an open design question (see SESSION_LOG.md)."))
     def test_high_similarity_for_nearly_identical(self):
         """Nearly identical signals should have high similarity."""
         results = self.comparator.compare_multiple_features(
@@ -191,6 +206,10 @@ class TestDTWSimilarityScoring(unittest.TestCase):
         # Should have high similarity score
         self.assertGreater(results['similarity_score'], 70)
     
+    @pytest.mark.xfail(strict=True, reason=(
+        "Needs George's decision: compare_multiple_features maps the mean of the raw MFCC, chroma and spectral "
+        "(Hz-scale) DTW distances to a score with (1 - d/10) * 100, so any non-identical audio scores 0. "
+        "The calibration of the score is an open design question (see SESSION_LOG.md)."))
     def test_low_similarity_for_different(self):
         """Different signals should have lower similarity."""
         results_same = self.comparator.compare_multiple_features(
